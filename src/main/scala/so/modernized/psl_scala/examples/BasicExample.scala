@@ -3,18 +3,16 @@ package so.modernized.psl_scala.examples
 import edu.umd.cs.psl.application.inference.MPEInference
 import edu.umd.cs.psl.application.learning.weight.maxlikelihood.MaxLikelihoodMPE
 import edu.umd.cs.psl.config.ConfigManager
-import edu.umd.cs.psl.database.{DatabasePopulator, Partition, DataStore}
-import edu.umd.cs.psl.database.rdbms.{RDBMSUniqueIntID, RDBMSDataStore}
 import edu.umd.cs.psl.database.rdbms.driver.H2DatabaseDriver
+import edu.umd.cs.psl.database.rdbms.{RDBMSDataStore, RDBMSUniqueIntID}
+import edu.umd.cs.psl.database.{DataStore, DatabasePopulator, Partition}
 import edu.umd.cs.psl.model.Model
 import edu.umd.cs.psl.model.argument.{GroundTerm, UniqueID}
 import edu.umd.cs.psl.model.predicate.StandardPredicate
 import edu.umd.cs.psl.util.database.Queries
-
-import so.modernized.psl_scala.psl._
-import so.modernized.psl_scala.psl.FunctionConversions._
-
-import org.apache.log4j.{Logger, Level}
+import org.apache.log4j.{Level, Logger}
+import so.modernized.psl_scala.primitives.PSLUnapplicable.PSLId
+import so.modernized.psl_scala.psl.everything._
 
 import scala.collection.JavaConverters._
 import scala.io.Source
@@ -80,7 +78,7 @@ object BasicExample {
     val Network = R[UniqueID, UniqueID]("Network")
     val Name = R[UniqueID, String]("Name")
     val Knows = R[UniqueID, UniqueID]("Knows")
-    val SamePerson = new R[UniqueID with PartialFunctional, UniqueID with PartialFunctional]("SamePerson") with Symmetry
+    val SamePerson = R[UniqueID, UniqueID]("SamePerson", PartialFunctional, PartialFunctional, new Symmetry {})
     val SameName = f("SameName", levenshteinSimilarity)
 
     val snA:GroundTerm = ds.getUniqueID(1)
@@ -148,9 +146,7 @@ object BasicExample {
 
     println("Hand-tunes weights output")
     Queries.getAllAtoms(db, SamePerson).asScala.toSeq.sortBy(-_.getValue) foreach { atom =>
-      val Array(a,b) = atom.getArguments
-      val ai = extract[RDBMSUniqueIntID](a)
-      val bi = extract[RDBMSUniqueIntID](b)
+      val Array(PSLId(ai:RDBMSUniqueIntID),PSLId(bi:RDBMSUniqueIntID)) = atom.getArguments
 
       (networkA.toMap.get(ai),  networkB.toMap.get(bi)) match {
         case (Some(n1), Some(n2)) => println(n1, n2, atom.getValue)
@@ -178,9 +174,7 @@ object BasicExample {
 
       println("learned weights output")
       groundings.toSeq.sortBy(-_.getValue) foreach { atom =>
-        val Array(a,b) = atom.getArguments
-        val ai = extract[RDBMSUniqueIntID](a)
-        val bi = extract[RDBMSUniqueIntID](b)
+        val Array(PSLId(ai:RDBMSUniqueIntID),PSLId(bi:RDBMSUniqueIntID)) = atom.getArguments
         (networkA.toMap.get(ai),  networkB.toMap.get(bi)) match {
           case (Some(n1), Some(n2)) => println(n1, n2, atom.getValue)
           case otw => ()
